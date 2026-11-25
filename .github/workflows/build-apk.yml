@@ -8,24 +8,30 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
+          java-version: '17'
+
+      - name: Extract project
+        run: |
+          unzip -q "nexora-pos (1).zip" -d extracted
+          GRADLEW=$(find extracted -type f -name gradlew | head -n 1)
+          if [ -z "$GRADLEW" ]; then
+            echo "File gradlew tidak ditemukan. ZIP mungkin bukan source Android lengkap."
+            exit 1
+          fi
+          PROJECT_DIR=$(dirname "$GRADLEW")
+          echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
+          chmod +x "$GRADLEW"
 
       - name: Build APK
-        run: |
-          unzip -o "nexora-pos(1).zip" -d project
-          cd project
-          chmod +x gradlew
-          ./gradlew assembleDebug
+        run: cd "$PROJECT_DIR" && ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: NEXORA-POS-APK
-          path: project/**/build/outputs/apk/debug/*.apk
+          path: extracted/**/build/outputs/apk/debug/*.apk
